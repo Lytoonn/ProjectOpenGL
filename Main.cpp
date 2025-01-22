@@ -3,9 +3,10 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
-#include <imgui/imgui.h>
-#include <imgui/imgui_impl_glfw.h>
-#include <imgui/imgui_impl_opengl3.h>
+
+#include <imgui.h>
+#include <imgui_impl_glfw.h>
+#include <imgui_impl_opengl3.h>
 
 #include <vector>
 #include <iostream>
@@ -28,6 +29,8 @@ bool leftMousePressed = false;
 double mouseX = 0.0, mouseY = 0.0;
 glm::mat4 projection;
 
+glm::vec4 particleColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
+
 const char* vertexShaderSource = R"(
 #version 330 core
 layout (location = 0) in vec2 aPos;
@@ -35,6 +38,7 @@ layout (location = 1) in vec4 aColor;
 
 out vec4 particleColor;
 
+uniform mat4 view;
 uniform mat4 projection;
 
 void main() {
@@ -63,6 +67,7 @@ void updateParticles(float deltaTime);
 void setupParticleRendering();
 void renderParticles();
 glm::vec2 getWorldPositionFromMouse(double mouseX, double mouseY);
+void setupImGui(GLFWwindow* window);
 
 int main() {
     glfwInit();
@@ -86,6 +91,8 @@ int main() {
         std::cout << "Failed to initialize GLAD" << std::endl;
         return -1;
     }
+
+    setupImGui(window);
 
     initializeParticles();
     setupParticleRendering();
@@ -117,12 +124,36 @@ int main() {
         processInput(window);
         updateParticles(deltaTime);
 
+        for (auto& particle : particles) {
+            if (particle.lifetime > 0.0f) {
+                particle.color = particleColor;
+            }
+        }
+
         glClear(GL_COLOR_BUFFER_BIT);
+
+        ImGui_ImplOpenGL3_NewFrame();
+        ImGui_ImplGlfw_NewFrame();
+        ImGui::NewFrame();
+
+        std::cout << "Rendering ImGui Window..." << std::endl;
+
+        ImGui::Begin("Particle Settings");
+        ImGui::ColorEdit4("Particle Color", glm::value_ptr(particleColor));
+        ImGui::End();
+
         renderParticles();
+
+        ImGui::Render();
+        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
+
+    ImGui_ImplOpenGL3_Shutdown();
+    ImGui_ImplGlfw_Shutdown();
+    ImGui::DestroyContext();
 
     glfwTerminate();
     return 0;
@@ -184,12 +215,7 @@ void updateParticles(float deltaTime) {
                     (static_cast<float>(rand()) / RAND_MAX - 0.5f) * 200.0f
                 );
                 particle.lifetime = static_cast<float>(rand()) / RAND_MAX * 5.0f;
-                particle.color = glm::vec4(
-                    static_cast<float>(rand()) / RAND_MAX,
-                    static_cast<float>(rand()) / RAND_MAX,
-                    static_cast<float>(rand()) / RAND_MAX,
-                    1.0f
-                );
+                particle.color = particleColor;
                 break;
             }
         }
@@ -216,9 +242,9 @@ void setupParticleRendering() {
 
 void renderParticles() {
     std::vector<float> particleData;
-    particleData.reserve(particles.size() * 6); // Reserve space for performance
+    particleData.reserve(particles.size() * 6);
 
-    for (const auto& particle : particles) {
+    for (auto& particle : particles) {
         if (particle.lifetime > 0.0f) {
             particleData.push_back(particle.position.x);
             particleData.push_back(particle.position.y);
@@ -234,10 +260,19 @@ void renderParticles() {
     glBufferData(GL_ARRAY_BUFFER, particleData.size() * sizeof(float), particleData.data(), GL_DYNAMIC_DRAW);
 
     glUseProgram(shaderProgram);
-
     glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
 
     glBindVertexArray(VAO);
     glDrawArrays(GL_POINTS, 0, particleData.size() / 6);
     glBindVertexArray(0);
+}
+
+void setupImGui(GLFWwindow* window) {
+    IMGUI_CHECKVERSION();
+    ImGui::CreateContext();
+    ImGuiIO& io = ImGui::GetIO(); (void)io;
+    ImGui::StyleColorsDark();
+
+    ImGui_ImplGlfw_InitForOpenGL(window, true);
+    ImGui_ImplOpenGL3_Init("#version 330");
 }
