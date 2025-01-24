@@ -22,7 +22,10 @@ struct Particle {
     glm::vec4 color;
 };
 
-std::vector<Particle> particles(1000);
+float particleVelocity = 100.0f;
+float particleLifetime = 5.0f;
+int maxParticles = 2000;
+std::vector<Particle> particles(maxParticles);
 
 unsigned int VAO, VBO, shaderProgram;
 bool leftMousePressed = false;
@@ -136,10 +139,40 @@ int main() {
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
 
-        std::cout << "Rendering ImGui Window..." << std::endl;
-
         ImGui::Begin("Particle Settings");
-        ImGui::ColorEdit4("Particle Color", glm::value_ptr(particleColor));
+
+        if (ImGui::SliderInt("Max Particles", &maxParticles, 1, 2000)) {
+            particles.resize(maxParticles);
+			std::cout << "Max Particles changed to " << maxParticles << std::endl;
+        }
+        if (ImGui::Button("Reset Max")) {
+			std::cout << "Max Particles reseted to 2000" << std::endl;
+            particles.resize(2000);
+        }
+
+        if (ImGui::SliderFloat("Particles Lifetime", &particleLifetime, 0.1f, 20.0f)) {
+			std::cout << "Lifetime changed to " << particleLifetime << std::endl;
+        }
+        if (ImGui::Button("Reset Lifetime")) {
+			std::cout << "Lifetime reseted" << std::endl;
+			particleLifetime = 5.0f;
+        }
+
+        if (ImGui::SliderFloat("Particles Velocity", &particleVelocity, 0.1f, 500)) {
+			std::cout << "Velocity changed to " << particleVelocity << std::endl;
+        }
+        if (ImGui::Button("Reset Velocity")) {
+			std::cout << "Velocity reseted" << std::endl;
+			particleVelocity = 100.0f;
+        }
+
+        if (ImGui::ColorEdit4("Particle Color", glm::value_ptr(particleColor))) {
+            std::cout << "Color changed" << std::endl;
+        }
+        if (ImGui::Button("Reset Color")) {
+			particleColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
+        }
+
         ImGui::End();
 
         renderParticles();
@@ -185,7 +218,7 @@ void initializeParticles() {
         particle.position = glm::vec2(0.0f);
         particle.velocity = glm::vec2(0.0f);
         particle.lifetime = 0.0f;
-        particle.color = glm::vec4(1.0f);
+        particle.color = particleColor;
     }
 }
 
@@ -205,16 +238,16 @@ void updateParticles(float deltaTime) {
         }
     }
 
-    if (leftMousePressed) {
+    if (leftMousePressed && !ImGui::GetIO().WantCaptureMouse) {
         glm::vec2 worldPos = getWorldPositionFromMouse(mouseX, mouseY);
         for (auto& particle : particles) {
             if (particle.lifetime <= 0.0f) {
                 particle.position = worldPos;
                 particle.velocity = glm::vec2(
-                    (static_cast<float>(rand()) / RAND_MAX - 0.5f) * 200.0f,
-                    (static_cast<float>(rand()) / RAND_MAX - 0.5f) * 200.0f
+                    (static_cast<float>(rand()) / RAND_MAX - 0.5f) * particleVelocity,
+                    (static_cast<float>(rand()) / RAND_MAX - 0.5f) * particleVelocity
                 );
-                particle.lifetime = static_cast<float>(rand()) / RAND_MAX * 5.0f;
+                particle.lifetime = static_cast<float>(rand()) / RAND_MAX * particleLifetime;
                 particle.color = particleColor;
                 break;
             }
