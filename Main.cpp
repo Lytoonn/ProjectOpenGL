@@ -28,7 +28,7 @@ int maxParticles = 2000;
 std::vector<Particle> particles(maxParticles);
 
 unsigned int VAO, VBO, shaderProgram;
-bool leftMousePressed = false;
+bool leftMousePressed = false, rightMousePressed = false;
 double mouseX = 0.0, mouseY = 0.0;
 glm::mat4 projection;
 
@@ -206,6 +206,9 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
     if (button == GLFW_MOUSE_BUTTON_LEFT) {
         leftMousePressed = (action == GLFW_PRESS);
     }
+    if (button == GLFW_MOUSE_BUTTON_RIGHT) {
+		rightMousePressed = (action == GLFW_PRESS);
+    }
 }
 
 void cursor_position_callback(GLFWwindow* window, double xpos, double ypos) {
@@ -227,8 +230,18 @@ glm::vec2 getWorldPositionFromMouse(double mouseX, double mouseY) {
 }
 
 void updateParticles(float deltaTime) {
+	glm::vec2 cursorPos = getWorldPositionFromMouse(mouseX, mouseY);
+
     for (auto& particle : particles) {
         if (particle.lifetime > 0.0f) {
+            if (rightMousePressed) {
+				glm::vec2 direction = cursorPos - particle.position;
+				float length = glm::length(direction);
+                if (length > 0.0f) {
+					direction /= length;
+                }
+				particle.velocity = direction * particleVelocity;
+            }
             particle.position += particle.velocity * deltaTime;
             particle.lifetime -= deltaTime;
 
