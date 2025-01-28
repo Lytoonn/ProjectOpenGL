@@ -26,6 +26,7 @@ float particleVelocity = 100.0f;
 float particleLifetime = 5.0f;
 int maxParticles = 2000;
 std::vector<Particle> particles(maxParticles);
+bool iman = true;
 
 unsigned int VAO, VBO, shaderProgram;
 bool leftMousePressed = false, rightMousePressed = false;
@@ -168,9 +169,22 @@ int main() {
 
         if (ImGui::ColorEdit4("Particle Color", glm::value_ptr(particleColor))) {
             std::cout << "Color changed" << std::endl;
+            std::cout << "particleColor: ("
+                << particleColor.x << ", "
+                << particleColor.y << ", "
+                << particleColor.z << ", "
+                << particleColor.w << ")"
+                << std::endl;
         }
+
         if (ImGui::Button("Reset Color")) {
 			particleColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
+        }
+
+        if (ImGui::Button(iman ? "Blob" : "Attracting Particles")) {
+			iman = !iman;
+			if (iman) std::cout << "Attracting Particles" << std::endl;
+			else std::cout << "Blob" << std::endl;
         }
 
         ImGui::End();
@@ -235,12 +249,23 @@ void updateParticles(float deltaTime) {
     for (auto& particle : particles) {
         if (particle.lifetime > 0.0f) {
             if (rightMousePressed) {
-				glm::vec2 direction = cursorPos - particle.position;
-				float length = glm::length(direction);
-                if (length > 0.0f) {
-					direction /= length;
+                if (iman) {
+                    glm::vec2 direction = cursorPos - particle.position;
+                    float length = glm::length(direction);
+                    if (length > 0.0f) {
+                        direction /= length;
+                    }
+                    particle.velocity = direction * particleVelocity;
                 }
-				particle.velocity = direction * particleVelocity;
+				else {
+					glm::vec2 direction = particle.position - cursorPos;
+					float length = glm::length(direction);
+					if (length > 0.0f) {
+						direction /= length;
+					}
+					particle.velocity += direction * particleVelocity * deltaTime;
+                }
+				
             }
             particle.position += particle.velocity * deltaTime;
             particle.lifetime -= deltaTime;
