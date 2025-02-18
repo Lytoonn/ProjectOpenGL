@@ -167,24 +167,10 @@ int main() {
 			particleVelocity = 100.0f;
         }
 
-        if (ImGui::ColorEdit4("Particle Color", glm::value_ptr(particleColor))) {
-            std::cout << "Color changed" << std::endl;
-            std::cout << "particleColor: ("
-                << particleColor.x << ", "
-                << particleColor.y << ", "
-                << particleColor.z << ", "
-                << particleColor.w << ")"
-                << std::endl;
-        }
-
-        if (ImGui::Button("Reset Color")) {
-			particleColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
-        }
-
-        if (ImGui::Button(iman ? "Blob" : "Attracting Particles")) {
+        if (ImGui::Button(iman ? "Repel Particles" : "Attract Particles")) {
 			iman = !iman;
-			if (iman) std::cout << "Attracting Particles" << std::endl;
-			else std::cout << "Blob" << std::endl;
+			if (iman) std::cout << "Attract Particles" << std::endl;
+			else std::cout << "Repel Particles" << std::endl;
         }
 
         ImGui::End();
@@ -265,7 +251,6 @@ void updateParticles(float deltaTime) {
 					}
 					particle.velocity += direction * particleVelocity * deltaTime;
                 }
-				
             }
             particle.position += particle.velocity * deltaTime;
             particle.lifetime -= deltaTime;
